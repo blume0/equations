@@ -167,12 +167,12 @@ let define_by_eqs ~pm ~poly ~program_mode ~obligations ~tactic ~open_proof opts 
     tactic } in
   let evm, udecl =
     match eqs with
-    | (((loc, i), udecl, _, _, _, _), _) :: _ ->
+    | ({id=(loc, i);udecl; _}, _) :: _ ->
       Constrintern.interp_univ_decl_opt env udecl
     | _ -> assert false
   in
   let evd = ref evm in
-  let programs = List.map (fun (((loc,i),udecl,rec_annot,l,t,by),clauses as ieqs) ->
+  let programs = List.map (fun ({id=(loc,i); _},clauses as ieqs) ->
       let is_rec = is_recursive i (eqs, nt) in
       interp_arity env evd ~poly ~is_rec ~with_evars:open_proof nt ieqs) eqs in
   let rec_type = compute_rec_type [] programs in
@@ -228,7 +228,7 @@ let interp_tactic = function
   | None -> !Declare.Obls.default_tactic
 
 let equations ~pm ~poly ~program_mode ?obligations ?tactic opts eqs nt =
-  List.iter (fun (((loc, i), _udecl, nested, l, t, by),eqs) -> Dumpglob.dump_definition CAst.(make ?loc i) false "def") eqs;
+  List.iter (fun ({id=(loc, i); _},eqs) -> Dumpglob.dump_definition CAst.(make ?loc i) false "def") eqs;
   let tactic = interp_tactic tactic in
   let pm, pstate =
     define_by_eqs ~pm ~poly ~program_mode ~obligations ~tactic ~open_proof:false opts eqs nt in
@@ -238,7 +238,7 @@ let equations ~pm ~poly ~program_mode ?obligations ?tactic opts eqs nt =
     CErrors.anomaly Pp.(str"Equation.equations leaving a proof open")
 
 let equations_interactive ~pm ~poly ~program_mode ?obligations ?tactic opts eqs nt =
-  List.iter (fun (((loc, i), _udecl, nested, l, t, by),eqs) -> Dumpglob.dump_definition CAst.(make ?loc i) false "def") eqs;
+  List.iter (fun ({id=(loc, i);_},eqs) -> Dumpglob.dump_definition CAst.(make ?loc i) false "def") eqs;
   let tactic = interp_tactic tactic in
   let pm, lemma = define_by_eqs ~pm ~poly ~program_mode ~obligations ~tactic ~open_proof:true opts eqs nt in
   match lemma with

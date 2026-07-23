@@ -88,10 +88,14 @@ and ('a,'b) rhs_aux =
 
 and ('a,'b) rhs = ('a, 'b) rhs_aux option (* Empty patterns allow empty r.h.s. *)
 
-and pre_prototype =
-  identifier with_loc * Constrexpr.universe_decl_expr option * user_rec_annot *
-  Constrexpr.local_binder_expr list * Constrexpr.constr_expr option *
-  (Id.t with_loc option, Constrexpr.constr_expr * Constrexpr.constr_expr option) by_annot option
+and pre_prototype = {
+  id : identifier with_loc;
+  udecl : Constrexpr.universe_decl_expr option;
+  rec_annot :  user_rec_annot;
+  binders : Constrexpr.local_binder_expr list;
+  ty : Constrexpr.constr_expr option;
+  by : (Id.t with_loc option, Constrexpr.constr_expr * Constrexpr.constr_expr option) by_annot option;
+}
 
 and ('a, 'b) by_annot =
   | Structural of 'a
@@ -160,10 +164,13 @@ and pr_wheres env sigma (l, nts) =
   str"where" ++ spc () ++ prlist_with_sep fnl (pr_where env sigma) l
 and pr_where env sigma (sign, eqns) =
   pr_proto env sigma sign ++ str "{" ++ pr_clauses env sigma eqns ++ str "}"
-and pr_proto env sigma ((_,id), _, _, l, t, ann) =
+and pr_proto env sigma {id=(_,id); binders; ty; by} =
   let flags = Ppconstr.current_flags() in
-  Id.print id ++ pr_binders ~flags env sigma l ++ pr_opt (fun t -> str" : " ++ pr_constr_expr ~flags env sigma t) t ++
-  (match ann with
+  Id.print id ++
+  pr_binders ~flags env sigma binders ++
+  pr_opt (fun t -> str" : " ++
+  pr_constr_expr ~flags env sigma t) ty ++
+  (match by with
      None -> mt ()
    | Some (WellFounded (t, rel)) -> str"by wf " ++ pr_constr_expr ~flags env sigma t ++ pr_opt (pr_constr_expr ~flags env sigma) rel
    | Some (Structural id) -> str"by struct " ++ pr_opt (fun x -> pr_id (snd x)) id)
@@ -598,7 +605,7 @@ let interp_eqn env sigma notations p ~avoid eqn =
        Program (c, (List.append w' w, nts))
     | Empty i -> Empty i
   and interp_wheres avoid w notations =
-    let interp_where (((loc,id),decl,nested,b,t,reca) as p,eqns) =
+    let interp_where ({id=(loc,id); _} as p,eqns) =
       Dumpglob.dump_reference ?loc "<>" (Id.to_string id) "def";
       p, map (aux2 notations avoid) eqns
     in List.map interp_where w
@@ -624,7 +631,8 @@ let interp_eqn env sigma notations p ~avoid eqn =
         let avoid = Id.Set.add id avoid in
         let eqns = List.map (aux2 notations avoid) eqns in
         let () =
-          wheres := (((loc, id), None, None, [], None, None), eqns) :: !wheres;
+          wheres := ({id=(loc, id); udecl=None; rec_annot=None;
+                      binders=[]; ty=None; by=None}, eqns) :: !wheres;
         in Constrexpr_ops.mkIdentC id
       | _ -> map_constr_expr_with_binders Id.Set.add
              (fun avoid -> CAst.with_loc_val (aux' avoid)) avoid (CAst.make ?loc c)

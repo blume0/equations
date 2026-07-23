@@ -70,10 +70,14 @@ and ('a,'b) rhs_aux =
   | Empty of identifier with_loc
   | Refine of Constrexpr.constr_expr list * 'b list
 and ('a,'b) rhs = ('a, 'b) rhs_aux option
-and pre_prototype =
-  identifier with_loc * Constrexpr.universe_decl_expr option * user_rec_annot *
-  Constrexpr.local_binder_expr list * Constrexpr.constr_expr option *
-  (Id.t with_loc option, Constrexpr.constr_expr * Constrexpr.constr_expr option) by_annot option
+and pre_prototype = {
+  id : identifier with_loc;
+  udecl : Constrexpr.universe_decl_expr option;
+  rec_annot :  user_rec_annot;
+  binders : Constrexpr.local_binder_expr list;
+  ty : Constrexpr.constr_expr option;
+  by : (Id.t with_loc option, Constrexpr.constr_expr * Constrexpr.constr_expr option) by_annot option;
+}
 
 and ('a, 'b) by_annot =
   | Structural of 'a

@@ -316,7 +316,7 @@ GRAMMAR EXTEND Gram
   ;
   proto:
    [ [ id = lident; d = OPT univ_decl; l = binders2; ":"; t = Constr.lconstr;
-       reca = wf_annot; ":="; eqs = sub_equations -> { (fun r -> ((id, d, r, l, Some t, reca), eqs)) }
+       by = wf_annot; ":="; eqs = sub_equations -> { (fun r -> ({id; udecl=d; rec_annot=r; binders=l; ty=Some t; by}, eqs)) }
    ] ]
   ;
 
