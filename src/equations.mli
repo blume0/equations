@@ -19,7 +19,7 @@ val define_by_eqs
   -> tactic:unit Proofview.tactic
   -> open_proof:bool
   -> Syntax.equation_options
-  -> Syntax.pre_equations
+  -> Syntax.raw_equations
   -> Vernacexpr.notation_declaration list
   -> Declare.OblState.t * Declare.Proof.t option
 
@@ -36,7 +36,7 @@ val equations :
   ?obligations:bool ->
   ?tactic:Libnames.qualid ->
   Syntax.equation_options ->
-  Syntax.pre_equations ->
+  Syntax.raw_equations ->
   Vernacexpr.notation_declaration list ->
   Declare.OblState.t
 
@@ -46,7 +46,7 @@ val equations_interactive :
   ?obligations:bool ->
   ?tactic:Libnames.qualid ->
   Syntax.equation_options ->
-  Syntax.pre_equations ->
+  Syntax.raw_equations ->
   Vernacexpr.notation_declaration list ->
   Declare.OblState.t * Declare.Proof.t
 

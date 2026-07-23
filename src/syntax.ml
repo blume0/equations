@@ -30,14 +30,22 @@ let coq_inacc = find_global "internal.inaccessible_pattern"
 (* / End of copy-paste *)
 
 type 'a with_loc = Loc.t option * 'a
-type identifier = Names.Id.t
-   
-type provenance = 
+
+(** User-level patterns *)
+
+type provenance =
   | User
   | Generated
   | Implicit
 
-(** User-level patterns *)
+type rec_annotation =
+  | Nested
+  | Mutual
+
+type user_rec_annot = rec_annotation option
+
+type identifier = Names.Id.t
+
 type user_pat =
     PUVar of identifier * provenance
   | PUCstr of constructor * int * user_pats
@@ -46,24 +54,22 @@ type user_pat =
 and user_pat_loc = (user_pat, [ `any ]) DAst.t
 and user_pats = user_pat_loc list
 
-(** AST *)
-
 type 'a input_pats =
-  | SignPats of 'a
+    SignPats of 'a
   | RefinePats of 'a list
 
-type rec_annotation =
-  | Nested
-  | Mutual
-
-type user_rec_annot = rec_annotation option
+(** Globalized syntax *)
 
 type rec_arg = int * Id.t with_loc option
-    
+
 type rec_annot =
   | MutualOn of rec_arg option
   | NestedOn of rec_arg option
   | NestedNonRec
+
+type ('a, 'b) by_annot =
+  | Structural of 'a
+  | WellFounded of 'b
 
 type program_body =
   | ConstrExpr of Constrexpr.constr_expr
@@ -72,14 +78,20 @@ type program_body =
                                 [Var names] of the lhs bound variables
                                 with the proper de Bruijn indices *)
 
-type lhs = user_pats
+type program = (signature * clause list) list
+and signature = identifier * EConstr.rel_context * constr (* f : Π Δ. τ *)
+and clause = Clause of Loc.t option * lhs * (clause, clause) rhs (* lhs rhs *)
+
+and lhs = user_pats (* p1 ... pn *)
+and ('a,'b) rhs = ('a, 'b) rhs_aux option
 
 and ('a,'b) rhs_aux =
     Program of program_body * 'a wheres
   | Empty of identifier with_loc
   | Refine of Constrexpr.constr_expr list * 'b list
 
-and ('a,'b) rhs = ('a, 'b) rhs_aux option (* Empty patterns allow empty r.h.s. *)
+and 'a where_clause = pre_prototype * 'a list
+and 'a wheres = 'a where_clause list * Vernacexpr.notation_declaration list
 
 and pre_prototype = {
   id : identifier with_loc;
@@ -90,22 +102,10 @@ and pre_prototype = {
   by : (Id.t with_loc option, Constrexpr.constr_expr * Constrexpr.constr_expr option) by_annot option;
 }
 
-and ('a, 'b) by_annot =
-  | Structural of 'a
-  | WellFounded of 'b
+and pre_clause = Pre_clause of Loc.t option * lhs * (raw_equation, pre_clause) rhs
 
-and 'a where_clause = pre_prototype * 'a list
-and 'a wheres = 'a where_clause list * Vernacexpr.notation_declaration list
-
-type program = (signature * clause list) list
-and signature = identifier * EConstr.rel_context * constr (* f : Π Δ. τ *)
-and clause = Clause of Loc.t option * lhs * (clause, clause) rhs (* lhs rhs *)
-
-type pre_equation = Pre_equation of Constrexpr.constr_expr input_pats * (pre_equation, pre_equation) rhs
-
-type pre_clause = Pre_clause of Loc.t option * lhs * (pre_equation, pre_clause) rhs
-
-type pre_equations = pre_equation where_clause list
+and raw_equation = Raw_equation of Constrexpr.constr_expr input_pats * (raw_equation, raw_equation) rhs
+and raw_equations = raw_equation where_clause list
 
 let pr_provenance ~with_gen id = function
   | User -> id
@@ -205,7 +205,7 @@ and pr_prerhs_aux env sigma = function
 and pr_user_rhs env sigma = pr_opt (pr_user_rhs_aux env sigma)
 and pr_prerhs env sigma = pr_opt (pr_prerhs_aux env sigma)
 
-and pr_user_clause env sigma (Pre_equation (lhs, rhs)) =
+and pr_user_clause env sigma (Raw_equation (lhs, rhs)) =
   pr_user_lhs env sigma lhs ++ pr_user_rhs env sigma rhs
 
 and pr_user_clauses env sigma =
@@ -228,7 +228,7 @@ let ppclause clause =
   let sigma = Evd.from_env env in
   pp(pr_clause env sigma clause)
 
-let wit_equations_list : (pre_equation list, Util.Empty.t) GenConstr.tag =
+let wit_equations_list : (raw_equation list, Util.Empty.t) GenConstr.tag =
   GenConstr.create "equations_list"
 
 let next_ident_away s ids =
@@ -525,7 +525,7 @@ let interp_eqn env sigma notations p ~avoid eqn =
       p.program_implicits
   in
   let interp_pat notations avoid = interp_pat env sigma notations ~avoid in
-  let rec aux notations avoid curpats (Pre_equation (pat, rhs)) =
+  let rec aux notations avoid curpats (Raw_equation (pat, rhs)) =
     let loc, avoid, pats =
       match pat with
       | SignPats pat ->
@@ -548,8 +548,8 @@ let interp_eqn env sigma notations p ~avoid eqn =
         loc, avoid, pats
     in
     Pre_clause (loc, pats, Option.map (interp_rhs notations avoid pats) rhs)
-  and aux2 notations avoid (Pre_equation (pat, rhs)) =
-    Pre_equation (pat, Option.map (interp_rhs' notations avoid) rhs)
+  and aux2 notations avoid (Raw_equation (pat, rhs)) =
+    Raw_equation (pat, Option.map (interp_rhs' notations avoid) rhs)
   and interp_rhs' notations avoid = function
     | Refine (c, eqs) ->
       let avoid = Id.Set.union avoid (ids_of_pats env sigma None c) in
@@ -634,8 +634,8 @@ let interp_eqn env sigma notations p ~avoid eqn =
     !wheres, c'
   in aux notations avoid [] eqn
 
-let is_recursive i : pre_equation wheres -> bool = fun eqs ->
-  let rec occur_eqn (Pre_equation (_, rhs)) =
+let is_recursive i : raw_equation wheres -> bool = fun eqs ->
+  let rec occur_eqn (Raw_equation (_, rhs)) =
     match rhs with
     | Some (Program (c,w)) ->
       (match c with

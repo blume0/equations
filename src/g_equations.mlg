@@ -165,7 +165,7 @@ let binders2_val = Geninterp.register_val0 wit_binders2 None
 let _ = Pptactic.declare_extra_genarg_pprule wit_binders2
   pr_raw_binders2 pr_glob_binders2 pr_binders2
 
-type deppat_equations_argtype = Syntax.pre_equation list Genarg.uniform_genarg_type
+type deppat_equations_argtype = Syntax.raw_equation list Genarg.uniform_genarg_type
 
 let wit_deppat_equations : deppat_equations_argtype =
   Genarg.create_arg "deppat_equations"
@@ -176,7 +176,7 @@ let pr_raw_deppat_equations _env _sigma _ _ _ l = mt ()
 let pr_glob_deppat_equations _env _sigma _ _ _ l = mt ()
 let pr_deppat_equations _env _sigma _ _ _ l = mt ()
 
-let deppat_equations : Syntax.pre_equation list Procq.Entry.t =
+let deppat_equations : Syntax.raw_equation list Procq.Entry.t =
   Procq.create_generic_entry2 "deppat_equations" (Genarg.rawwit wit_deppat_equations)
 
 let _ = Pptactic.declare_extra_genarg_pprule wit_deppat_equations
@@ -199,7 +199,7 @@ let deppat_elim : Constrexpr.constr_expr list Procq.Entry.t =
 let _ = Pptactic.declare_extra_genarg_pprule wit_deppat_elim
   pr_raw_deppat_elim pr_glob_deppat_elim pr_deppat_elim
 
-type equations_argtype = (pre_equations * Vernacexpr.notation_declaration list) Genarg.uniform_genarg_type
+type equations_argtype = (raw_equations * Vernacexpr.notation_declaration list) Genarg.uniform_genarg_type
 
 let wit_equations : equations_argtype =
   Genarg.create_arg "equations"
@@ -209,7 +209,7 @@ let pr_raw_equations _env _sigma _ _ _ l = mt ()
 let pr_glob_equations _env _sigma _ _ _ l = mt ()
 let pr_equations _env _sigma _ _ _ l = mt ()
 
-let equations : (pre_equations * Vernacexpr.notation_declaration list) Procq.Entry.t =
+let equations : (raw_equations * Vernacexpr.notation_declaration list) Procq.Entry.t =
   Procq.create_generic_entry2 "equations" (Genarg.rawwit wit_equations)
 
 let _ = Pptactic.declare_extra_genarg_pprule wit_equations
@@ -294,8 +294,8 @@ GRAMMAR EXTEND Gram
    ]];
 
   equation:
-  [ [ "|"; pats = patterns; r = rhs -> { Pre_equation (RefinePats pats, r) }
-      | pat = pat; r = rhs -> { Pre_equation (SignPats pat, r) }
+  [ [ "|"; pats = patterns; r = rhs -> { Raw_equation (RefinePats pats, r) }
+      | pat = pat; r = rhs -> { Raw_equation (SignPats pat, r) }
     ] ]
   ;
 

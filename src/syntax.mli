@@ -14,7 +14,7 @@ open Names
 type 'a with_loc = Loc.t option * 'a
 
 (** User-level patterns *)
-type provenance = 
+type provenance =
   | User
   | Generated
   | Implicit
@@ -35,8 +35,6 @@ type user_pat =
 and user_pat_loc = (user_pat, [ `any ]) DAst.t
 and user_pats = user_pat_loc list
 
-(** Raw syntax *)
-
 type 'a input_pats =
     SignPats of 'a
   | RefinePats of 'a list
@@ -44,11 +42,15 @@ type 'a input_pats =
 (** Globalized syntax *)
 
 type rec_arg = int * Id.t with_loc option
-    
+
 type rec_annot =
   | MutualOn of rec_arg option
   | NestedOn of rec_arg option
   | NestedNonRec
+
+type ('a, 'b) by_annot =
+  | Structural of 'a
+  | WellFounded of 'b
 
 type program_body =
   | ConstrExpr of Constrexpr.constr_expr
@@ -57,12 +59,21 @@ type program_body =
                                 [Var names] of the lhs bound variables
                                 with the proper de Bruijn indices *)
 
-type lhs = user_pats (* p1 ... pn *)
+type program = (signature * clause list) list
+and signature = identifier * EConstr.rel_context * constr (* f : Π Δ. τ *)
+and clause = Clause of Loc.t option * lhs * (clause, clause) rhs (* lhs rhs *)
+
+and lhs = user_pats (* p1 ... pn *)
+and ('a,'b) rhs = ('a, 'b) rhs_aux option
+
 and ('a,'b) rhs_aux =
     Program of program_body * 'a wheres
   | Empty of identifier with_loc
   | Refine of Constrexpr.constr_expr list * 'b list
-and ('a,'b) rhs = ('a, 'b) rhs_aux option
+
+and 'a where_clause = pre_prototype * 'a list
+and 'a wheres = 'a where_clause list * Vernacexpr.notation_declaration list
+
 and pre_prototype = {
   id : identifier with_loc;
   udecl : Constrexpr.universe_decl_expr option;
@@ -72,21 +83,11 @@ and pre_prototype = {
   by : (Id.t with_loc option, Constrexpr.constr_expr * Constrexpr.constr_expr option) by_annot option;
 }
 
-and ('a, 'b) by_annot =
-  | Structural of 'a
-  | WellFounded of 'b
+and pre_clause = Pre_clause of Loc.t option * lhs * (raw_equation, pre_clause) rhs
 
-and 'a where_clause = pre_prototype * 'a list
-and 'a wheres = 'a where_clause list * Vernacexpr.notation_declaration list
-type program = (signature * clause list) list
-and signature = identifier * EConstr.rel_context * constr (* f : Π Δ. τ *)
-and clause = Clause of Loc.t option * lhs * (clause, clause) rhs (* lhs rhs *)
+and raw_equation = Raw_equation of Constrexpr.constr_expr input_pats * (raw_equation, raw_equation) rhs
+and raw_equations = raw_equation where_clause list
 
-type pre_equation = Pre_equation of Constrexpr.constr_expr input_pats * (pre_equation, pre_equation) rhs
-
-type pre_clause = Pre_clause of Loc.t option * lhs * (pre_equation, pre_clause) rhs
-
-type pre_equations = pre_equation where_clause list
 
 (* val pr_user_pat : env -> user_pat -> Pp.t *)
 
@@ -109,7 +110,7 @@ val pr_preclauses :
 
 
 val pr_user_clause :
-  env -> evar_map -> pre_equation -> Pp.t
+  env -> evar_map -> raw_equation -> Pp.t
 
 val ppclause : clause -> unit
 
@@ -179,11 +180,11 @@ val interp_pat : Environ.env -> Evd.evar_map -> Vernacexpr.notation_declaration 
 
 val interp_eqn : env -> Evd.evar_map -> Vernacexpr.notation_declaration list -> program_info ->
   avoid:Id.Set.t ->
-  pre_equation -> pre_clause
+  raw_equation -> pre_clause
 
-val wit_equations_list : (pre_equation list, Util.Empty.t) GenConstr.tag
+val wit_equations_list : (raw_equation list, Util.Empty.t) GenConstr.tag
 
-val is_recursive : Names.Id.t -> pre_equation wheres -> bool
+val is_recursive : Names.Id.t -> raw_equation wheres -> bool
 
 val equations_attributes : Attributes.vernac_flags -> equation_user_option list
 val derive_flags : (bool option * bool option) Attributes.attribute
