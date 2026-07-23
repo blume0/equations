@@ -245,7 +245,7 @@ val interp_arity : Environ.env ->
   is_rec:bool ->
   with_evars:bool ->
   Vernacexpr.notation_declaration list ->
-  pre_equation Syntax.where_clause ->
+  raw_equation Syntax.where_clause ->
   program_info
 
 val coverings :
@@ -253,5 +253,5 @@ val coverings :
   Evd.evar_map ref ->
   int_data ->
   Syntax.program_info list ->
-  pre_equation list list ->
+  raw_equation list list ->
   Splitting.program list

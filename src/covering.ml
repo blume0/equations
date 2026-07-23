@@ -1553,7 +1553,7 @@ and interp_clause env evars p data prev clauses' path prob
 
 and interp_wheres env0 ctx evars path data s lets
     (ctx, envctx, liftn, subst)
-    (w : (pre_prototype * pre_equation list) list * Vernacexpr.notation_declaration list) =
+    (w : (pre_prototype * raw_equation list) list * Vernacexpr.notation_declaration list) =
   let notations = snd w in
   let aux (data,lets,nlets,coverings,env)
       ({id=(loc,id);udecl;rec_annot=nested;binders=b;ty=t;by=reca},clauses as eqs) =
