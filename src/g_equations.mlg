@@ -199,7 +199,7 @@ let deppat_elim : Constrexpr.constr_expr list Procq.Entry.t =
 let _ = Pptactic.declare_extra_genarg_pprule wit_deppat_elim
   pr_raw_deppat_elim pr_glob_deppat_elim pr_deppat_elim
 
-type equations_argtype = (raw_equations * Vernacexpr.notation_declaration list) Genarg.uniform_genarg_type
+type equations_argtype = raw_equations Genarg.uniform_genarg_type
 
 let wit_equations : equations_argtype =
   Genarg.create_arg "equations"
@@ -209,7 +209,7 @@ let pr_raw_equations _env _sigma _ _ _ l = mt ()
 let pr_glob_equations _env _sigma _ _ _ l = mt ()
 let pr_equations _env _sigma _ _ _ l = mt ()
 
-let equations : (raw_equations * Vernacexpr.notation_declaration list) Procq.Entry.t =
+let equations : raw_equations Procq.Entry.t =
   Procq.create_generic_entry2 "equations" (Genarg.rawwit wit_equations)
 
 let _ = Pptactic.declare_extra_genarg_pprule wit_equations
@@ -408,14 +408,14 @@ VERNAC COMMAND EXTEND Define_equations_refine CLASSIFIED BY { classify_equations
 | #[ poly = poly_def; program_mode = program; atts = derive_flags; obligations = equations_obligations; tactic = equations_tactic ] ![program_interactive]
   [ "Equations" "?" equation_options(opt) equations(eqns) ] ->
     { Equations.equations_interactive ~poly ~program_mode ?obligations ?tactic
-      (List.append opt (interp_attrs atts)) (fst eqns) (snd eqns) }
+      (List.append opt (interp_attrs atts)) eqns }
 END
 
 VERNAC COMMAND EXTEND Define_equations CLASSIFIED AS SIDEFF STATE program
 | #[ poly = poly_def; program_mode = program; atts = derive_flags; obligations = equations_obligations; tactic = equations_tactic  ]
   [ "Equations" equation_options(opt) equations(eqns) ] ->
     { Equations.equations ~poly ~program_mode ?obligations ?tactic
-      (List.append opt (interp_attrs atts)) (fst eqns) (snd eqns) }
+      (List.append opt (interp_attrs atts)) eqns }
 END
 
 (* Dependent elimination using Equations. *)

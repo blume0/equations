@@ -86,7 +86,7 @@ and pre_prototype = {
 and pre_clause = Pre_clause of Loc.t option * lhs * (raw_equation, pre_clause) rhs
 
 and raw_equation = Raw_equation of Constrexpr.constr_expr input_pats * (raw_equation, raw_equation) rhs
-and raw_equations = raw_equation where_clause list
+and raw_equations = raw_equation wheres
 
 
 (* val pr_user_pat : env -> user_pat -> Pp.t *)
