@@ -741,10 +741,10 @@ let compute_fixdecls_data env evd ?data programs =
     List.map2 (fun i (relevance, fixprot) -> of_tuple (make_annot (Name i) relevance, None, fixprot)) names fixprots in
   data, List.rev fixdecls, fixprots
 
-let interp_arity env evd ~poly ~is_rec ~with_evars notations (((loc,i),udecl,rec_annot,l,t,by),clauses as ieqs) =
-  let ienv, ((env', sign), impls, _locs) = Equations_common.evd_comb1 (interp_context_evars env) evd l in
+let interp_arity env evd ~poly ~is_rec ~with_evars notations ({id=(loc,i);udecl;rec_annot;binders;ty;by},clauses as ieqs) =
+  let ienv, ((env', sign), impls, _locs) = Equations_common.evd_comb1 (interp_context_evars env) evd binders in
   let (arity, impls') =
-    let ty = match t with
+    let ty = match ty with
       | Some ty -> ty
       | None -> CAst.make ?loc (Constrexpr.CHole None)
     in
@@ -1556,7 +1556,7 @@ and interp_wheres env0 ctx evars path data s lets
     (w : (pre_prototype * pre_equation list) list * Vernacexpr.notation_declaration list) =
   let notations = snd w in
   let aux (data,lets,nlets,coverings,env)
-      (((loc,id),udecl,nested,b,t,reca),clauses as eqs) =
+      ({id=(loc,id);udecl;rec_annot=nested;binders=b;ty=t;by=reca},clauses as eqs) =
 
     let is_rec = is_recursive id ([eqs], notations) in
     let p = interp_arity env evars ~poly:false ~is_rec ~with_evars:true notations eqs in
