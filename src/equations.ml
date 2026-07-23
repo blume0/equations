@@ -146,7 +146,7 @@ let define_principles ~pm (flags : flags) rec_type progs =
     in
     build_equations ~pm flags.with_ind env !evd rec_type splits
 
-let define_by_eqs ~pm ~poly ~program_mode ~obligations ~tactic ~open_proof opts eqs nt =
+let define_by_eqs ~pm ~poly ~program_mode ~obligations ~tactic ~open_proof opts (eqs, nt) =
   let with_eqns, with_ind =
     let try_bool_opt opt default =
       try List.assoc opt opts
@@ -227,20 +227,20 @@ let interp_tactic = function
     Tacinterp.Value.apply tacval []
   | None -> !Declare.Obls.default_tactic
 
-let equations ~pm ~poly ~program_mode ?obligations ?tactic opts eqs nt =
+let equations ~pm ~poly ~program_mode ?obligations ?tactic opts (eqs, nt) =
   List.iter (fun ({id=(loc, i); _},eqs) -> Dumpglob.dump_definition CAst.(make ?loc i) false "def") eqs;
   let tactic = interp_tactic tactic in
   let pm, pstate =
-    define_by_eqs ~pm ~poly ~program_mode ~obligations ~tactic ~open_proof:false opts eqs nt in
+    define_by_eqs ~pm ~poly ~program_mode ~obligations ~tactic ~open_proof:false opts (eqs, nt) in
   match pstate with
   | None -> pm
   | Some _ ->
     CErrors.anomaly Pp.(str"Equation.equations leaving a proof open")
 
-let equations_interactive ~pm ~poly ~program_mode ?obligations ?tactic opts eqs nt =
+let equations_interactive ~pm ~poly ~program_mode ?obligations ?tactic opts (eqs, nt) =
   List.iter (fun ({id=(loc, i);_},eqs) -> Dumpglob.dump_definition CAst.(make ?loc i) false "def") eqs;
   let tactic = interp_tactic tactic in
-  let pm, lemma = define_by_eqs ~pm ~poly ~program_mode ~obligations ~tactic ~open_proof:true opts eqs nt in
+  let pm, lemma = define_by_eqs ~pm ~poly ~program_mode ~obligations ~tactic ~open_proof:true opts (eqs, nt) in
   match lemma with
   | None ->
     CErrors.anomaly Pp.(str"Equation.equations_interactive not opening a proof")

@@ -741,7 +741,7 @@ let compute_fixdecls_data env evd ?data programs =
     List.map2 (fun i (relevance, fixprot) -> of_tuple (make_annot (Name i) relevance, None, fixprot)) names fixprots in
   data, List.rev fixdecls, fixprots
 
-let interp_arity env evd ~poly ~is_rec ~with_evars notations ({id=(loc,i);udecl;rec_annot;binders;ty;by},clauses as ieqs) =
+let interp_arity env evd ~poly ~is_rec ~with_evars notations ({id=(loc,i);udecl;rec_annot;binders;ty;by},_ as ieqs) =
   let ienv, ((env', sign), impls, _locs) = Equations_common.evd_comb1 (interp_context_evars env) evd binders in
   let (arity, impls') =
     let ty = match ty with
