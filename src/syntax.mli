@@ -36,13 +36,6 @@ and user_pat_loc = (user_pat, [ `any ]) DAst.t
 and user_pats = user_pat_loc list
 
 (** Raw syntax *)
-type pat_expr =
-    PEApp of Libnames.qualid Constrexpr.or_by_notation with_loc *
-      pat_expr with_loc list
-  | PEWildcard
-  | PEInac of Constrexpr.constr_expr
-
-type user_pat_expr = pat_expr with_loc
 
 type 'a input_pats =
     SignPats of 'a
