@@ -48,13 +48,6 @@ and user_pats = user_pat_loc list
 
 (** AST *)
 
-type pat_expr =
-  | PEApp of qualid Constrexpr.or_by_notation with_loc * pat_expr with_loc list
-  | PEWildcard
-  | PEInac of constr_expr
-
-type user_pat_expr = pat_expr with_loc
-
 type 'a input_pats =
   | SignPats of 'a
   | RefinePats of 'a list
