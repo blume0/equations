@@ -33,12 +33,28 @@ val enter_goal : (Environ.env -> Evd.evar_map -> EConstr.t -> unit Proofview.tac
 (* Common flags *)
 type flags = {
   poly : PolyFlags.t;
+  (** Whether to use universe polymorphic or monomorphic definitions. *)
+
   obligations : bool;
+  (** Create obligations for unsolved goals. *)
+
   open_proof : bool;
+  (** Use interactive proof mode instead of obligations for unsolved goals. *)
+
   with_eqns : bool;
+  (** Generate equations corresponding to the clauses. *)
+
   with_ind : bool;
+  (** Generate the inductive graph and derived eliminator.
+      Implies [with_eqns]. *)
+
   allow_aliases : bool;
-  tactic : unit Proofview.tactic }
+  (** Allow two occurrences of a variable to be unified with different
+      values (one shadows the other). *)
+
+  tactic : unit Proofview.tactic;
+  (** The default tactic to try to solve obligations/holes. *)
+}
 
 (* Point-free composition *)
 val ( $ ) : ('a -> 'b) -> ('c -> 'a) -> 'c -> 'b

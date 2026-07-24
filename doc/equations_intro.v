@@ -575,4 +575,7 @@ End KAxiom.
     the graph and elimination principle for the function, and the propositional 
     equalities of the definition. Note that `eliminator=yes` forces `equations=yes`.
 
+  - [obligations] for using the obligation system to resolve obligations/holes.
+    (also depending on the global `Equations Obligations` flag).
+
 *)
