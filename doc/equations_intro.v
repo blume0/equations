@@ -331,7 +331,7 @@ Arguments Vector.cons {A} a {n} v : rename.
 
 Abbreviation vector := Vector.t.
 Abbreviation Vnil := Vector.nil.
-Abbreviationy Vcons := Vector.cons.
+Abbreviation Vcons := Vector.cons.
 
 Equations vmap {A B} (f : A -> B) {n} (v : vector A n) :
   vector B n :=
@@ -483,6 +483,7 @@ Check well_founded_t_subterm : forall A, WellFounded (t_subterm A).
     packed vector type. *)
 
 Module UnzipVect.
+Section UnzipVectSec.
   Context {A B : Type}.
 
   (** We can use the packed relation to do well-founded recursion on the vector.
@@ -499,6 +500,7 @@ Module UnzipVect.
   unzip (Vector.cons (pair x y) v) with unzip v := {
   | pair xs ys := (Vector.cons x xs, Vector.cons y ys) }.
 
+End UnzipVectSec.
 End UnzipVect.
 
 (** For the diagonal, it is easier to give [n] as the decreasing argument
