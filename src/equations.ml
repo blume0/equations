@@ -167,9 +167,9 @@ let define_by_eqs ~pm ~poly ~program_mode ~obligations ~tactic ~open_proof opts 
     tactic } in
   let evm, udecl =
     match eqs with
-    | ({id=(loc, i);udecl; _}, _) :: _ ->
+    | ({id=(_, i);udecl; _}, _) :: _ ->
       Constrintern.interp_univ_decl_opt env udecl
-    | _ -> assert false
+    | [] -> assert false
   in
   let evd = ref evm in
   let programs = List.map (fun ({id=(loc,i); _},clauses as ieqs) ->

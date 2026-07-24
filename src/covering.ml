@@ -1120,8 +1120,8 @@ let rec covering_aux env evars p data prev (clauses : (pre_clause * (int * int))
               match gen, gen' with
               | Generated, (User | Implicit) -> (Int.Map.add i (x', inacc && inacc', gen') bindings, s)
               | Generated, Generated -> (Int.Map.add i (x, inacc && inacc', gen) bindings, s)
-              | _, Generated -> (Int.Map.add i (x, inacc && inacc', gen) bindings, s)
-              | _, _ -> 
+              | (User | Implicit), Generated -> (Int.Map.add i (x, inacc && inacc', gen) bindings, s)
+              | (User | Implicit), (User | Implicit) -> 
                 if not (Id.equal x x') then
                   (* We allow aliasing of implicit variable names resulting from forcing a pattern *)
                   if not data.flags.allow_aliases && (gen == User && gen' == User) then
