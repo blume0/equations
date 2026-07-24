@@ -168,6 +168,11 @@ In \Equations v1.3 and higher, the command supports the following attributes:
   graph and elimination principle, respectively. Note that \texttt{eliminator = yes} 
   forces \texttt{equations = yes}.
 
+- \texttt{obligations} (since v1.3.2) for using the obligation system to resolve
+  holes and obligations coming from well-founded recursive definitions (also
+  depending on the global \texttt{Equations Obligations} flag). If the
+  \kw{Equations?} syntax is used, the value this option and its global counterpart is ignored.
+
 The \emph{deprecated} syntax $opts$ is a list of flags among:
 
 \begin{itemize}
@@ -234,6 +239,10 @@ The \kw{Equations} command obeys a few global options:
   generation of the graph and functional elimination principle
   associated to a definition, governed locally by the
   \texttt{derive(eliminator)} attribute.
+
+\item \texttt{Equations Obligations} (since v1.3.2) this sets the default for the
+  use of the obligation system, governed locally by the \texttt{obligations}
+  attribute.
 \end{itemize}
 
 \section{Derive}
