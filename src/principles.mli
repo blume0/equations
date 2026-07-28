@@ -64,24 +64,7 @@ val subst_comp_proj_split : Evd.evar_map ->
 val clear_ind_assums : Environ.env -> Evd.evar_map ->
   Names.MutInd.t ->
   Equations_common.rel_context -> Equations_common.rel_context
-val compute_elim_type :
-  Environ.env ->
-  Equations_common.esigma -> Names.Id.Set.t ->
-  Syntax.rec_type ->
-  proto list ->
-  Names.MutInd.t ->
-  int ->
-         (int *
-          (rec_const *
-           (rec_const * Names.Id.t * Splitting.splitting)
-           option * Splitting.path * EConstr.rel_context * EConstr.types *
-           EConstr.constr list * (EConstr.constr * (int * int)) option * (node_kind * bool)) *
-          (int *
-           (bool * unit Proofview.tactic * EConstr.t * EConstr.constr option))
-          list)
-         list ->
-  (node_kind * 'e * 'f * 'g option) list ->
-  rel_context -> constr -> types -> int * types
+
 val replace_vars_context :
   Evd.evar_map -> Names.Id.t list ->
   Equations_common.rel_declaration list ->
@@ -139,22 +122,6 @@ val build_equations :
   (Splitting.program * Splitting.program option *
    Splitting.compiled_program_info * Principles_proofs.equations_info) list ->
   Declare.OblState.t
-
-val all_computations :
-  Environ.env ->
-  Evd.evar_map ->
-  (rec_const * Names.Id.t * Splitting.splitting)
-    option ->
-  (Splitting.program * Splitting.program option * 'b * Principles_proofs.equations_info) list ->
-  ((rec_const *
-    alias option * Splitting.path * EConstr.rel_context * EConstr.t *
-    EConstr.constr list * (EConstr.constr * (int * int)) option *
-    (node_kind * bool)) *
-   (Equations_common.rel_context * EConstr.t *
-    alias option * EConstr.constr list * EConstr.t * EConstr.t *
-    (node_kind * bool) * Splitting.splitting_rhs)
-     list)
-    list
 
 val make_alias : (EConstr.t * Names.Id.t * Splitting.splitting) -> alias
 
