@@ -1134,7 +1134,6 @@ type clause = {
   alias : alias option;
   pats : EConstr.constr list;
   ty : types;
-  f_aussi : EConstr.t;
   kind : node_kind * bool (* "cut" *);
   rhs : splitting_rhs;
 }
@@ -1224,7 +1223,7 @@ let computations env evd alias refine p eqninfo : computation list =
      let patsconstrs = pattern_instance ctx in
      let ty = substl inst ty in
      [Computation ({ctx=ctx.src_ctx; f; alias; pats=patsconstrs; ty;
-      f_aussi=f; kind=(Where, snd refine); rhs=c'}, Some wheres)]
+                    kind=(Where, snd refine); rhs=c'}, Some wheres)]
 
   | Split (_, _, _, cs) ->
     Array.fold_left (fun acc c ->
@@ -1251,7 +1250,7 @@ let computations env evd alias refine p eqninfo : computation list =
       (push_rel_context (pi1 lhs) env) evd info.refined_term);
      Feedback.msg_debug Pp.(str"At refine node, program term: " ++ Printer.pr_econstr_env 
       (push_rel_context (pi1 lhs) env) evd progterm); *)
-     [Computation ({ctx=lhs.src_ctx; f; alias; pats=patsconstrs; ty=info.refined_rettyp; f_aussi=f; kind=(Refine, true);
+     [Computation ({ctx=lhs.src_ctx; f; alias; pats=patsconstrs; ty=info.refined_rettyp; kind=(Refine, true);
       rhs=RProgram progterm},
       Some [(info.refined_term, filter), None, info.refined_path, info.refined_newprob.src_ctx,
             info.refined_newty, refinedpats,
@@ -1594,7 +1593,7 @@ let build_equations ~pm with_ind env evd ?(alias:alias option) rec_info progs =
   in
   let evd = ref evd in
   let poly = info.poly in
-  let statement i filter {ctx; f=fl; alias=flalias; pats; ty; f_aussi=f'; kind=(refine, cut); rhs=c} =
+  let statement i filter {ctx; f=fl; alias=flalias; pats; ty; kind=(refine, cut); rhs=c} =
     let hd, unf = match flalias with
       | Some ((f', _), unf, _) ->
         let tac = Proofview.tclBIND
