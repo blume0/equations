@@ -44,6 +44,25 @@ let regular_or_nested_rec = function
 
 let nested = function Nested _ -> true | _ -> false
 
+
+type proto = {
+  head : EConstr.t;
+  f : EConstr.t * int list;
+  alias : (EConstr.t * int list) option;
+  idx : int;
+  sign : EConstr.rel_context;
+  arity : Constr.t;
+}
+
+type rec_call = {
+  idx : int;
+  arity : Constr.t;
+  filter : int list;
+  sign : Constr.rel_context;
+  args : Constr.constr list * Constr.constr list * Constr.constr list;
+}
+
+
 let pi1 (x,_,_) = x
 let pi2 (_,y,_) = y
 
@@ -199,7 +218,7 @@ let drop_last_n n l =
   List.rev l
 
 let find_rec_call is_rec sigma protos f args =
-  let fm (fhead,(f',filter), alias, idx, sign, arity) =
+  let fm {head=fhead; f=(_,filter); alias; idx; sign; arity} =
     if Constr.equal (EConstr.Unsafe.to_constr fhead) f then
       let f' = fst (Constr.destConst f) in
       match is_applied_to_structarg (Names.Constant.label f') is_rec
@@ -222,11 +241,11 @@ let find_rec_call is_rec sigma protos f args =
             let fargs = List.map (Constr.lift signlen) args @ Context.Rel.instance_list Constr.mkRel 0 sign in
             sign, (fargs, indargs, [])
         in
-        Some (idx, arity, filter, sign, args)
+        Some {idx; arity; filter; sign; args}
       | Some false -> None
     else
       match alias with
-      | Some (f',argsf) ->
+      | Some (f',filter) ->
         let signlen = List.length sign in        
         let f', args' = EConstr.decompose_app sigma f' in
         let f' = EConstr.Unsafe.to_constr f' in
@@ -246,7 +265,7 @@ let find_rec_call is_rec sigma protos f args =
               let fargs = List.map (Constr.lift signlen) args @ Context.Rel.instance_list Constr.mkRel 0 sign in
               sign, (fargs, indargs, [])
           in
-          Some (idx, arity, argsf, sign, args)
+          Some {idx; arity; filter; sign; args}
         else None
       | None -> None
   in
@@ -262,7 +281,7 @@ let filter_arg i filter =
   in aux filter
 
 let abstract_rec_calls sigma user_obls ?(do_subst=true) is_rec len protos c =
-  let proto_fs = List.map (fun (_,(f,args), _, _, _, _) -> f) protos in
+  let proto_fs = List.map (fun {f=(f,args); _} -> f) protos in
   let occ = ref 0 in
   let rec aux n env hyps c =
     let open Constr in
@@ -299,7 +318,7 @@ let abstract_rec_calls sigma user_obls ?(do_subst=true) is_rec len protos c =
       let f', args = decompose_app c in
       if not (is_user_obl sigma user_obls (EConstr.of_constr f')) then
         (match find_rec_call is_rec sigma protos f' (Array.to_list args) with
-         | Some (i, arity, filter, sign, (fargs', indargs', rest)) ->
+         | Some {idx=i; arity; filter; sign; args=(fargs', indargs', rest)} ->
            let hyps =
              CArray.fold_left_i
                (fun i hyps arg ->
@@ -1558,7 +1577,7 @@ let build_equations ~pm with_ind env evd ?(alias:alias option) rec_info progs =
         | None -> None
         | Some (f, _, _) -> Some f
       in
-      (f'hd, (f',filterf'), alias, lenprotos - i, sign, to_constr evd arity))
+      {head=f'hd; f=(f',filterf'); alias; idx=lenprotos - i; sign; arity=to_constr evd arity})
       1 protos
   in
   let evd = ref evd in

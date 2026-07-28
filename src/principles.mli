@@ -21,25 +21,36 @@ val smash_ctx_map : Environ.env -> Evd.evar_map -> Context_map.context_map -> Co
 
 val subst_protos: Splitting.term_info -> Names.Constant.t list -> Names.GlobRef.t -> Names.GlobRef.t
 
-val find_rec_call : Syntax.rec_type ->
-           Evd.evar_map ->
-  (constr * (constr * int list) * (constr * int list) option * int *
-   EConstr.rel_context * Constr.t)
-           list ->
-           Constr.constr ->
-           Constr.constr list ->
-           (int * Constr.t * int list *
-            Constr.rel_context *
-            (Constr.constr list * Constr.constr list * Constr.constr list))
-           option
+type proto = {
+  head : EConstr.t;
+  f : EConstr.t * int list;
+  alias : (EConstr.t * int list) option;
+  idx : int;
+  sign : EConstr.rel_context;
+  arity : Constr.t;
+}
+
+type rec_call = {
+  idx : int;
+  arity : Constr.t;
+  filter : int list;
+  sign : Constr.rel_context;
+  args : Constr.constr list * Constr.constr list * Constr.constr list;
+}
+
+val find_rec_call :
+  Syntax.rec_type ->
+  Evd.evar_map ->
+  proto list ->
+  Constr.constr ->
+  Constr.constr list ->
+  rec_call option
 
 val abstract_rec_calls : Evd.evar_map -> Names.Id.Set.t ->
   ?do_subst:bool ->
   Syntax.rec_type ->
   int ->
-  (constr * (constr * int list) * (constr * int list) option * int *
-   EConstr.rel_context * Constr.t)
-  list -> constr -> rel_context * int * constr
+  proto list -> constr -> rel_context * int * constr
 val subst_app :Evd.evar_map ->
   constr ->
   (int -> constr -> constr array -> constr) ->
@@ -55,9 +66,7 @@ val compute_elim_type :
   Environ.env ->
   Equations_common.esigma -> Names.Id.Set.t ->
   Syntax.rec_type ->
-  (constr * (constr * int list) * (constr * int list) option * int *
-   EConstr.rel_context * Constr.t)
-  list ->
+  proto list ->
   Names.MutInd.t ->
   int ->
          (int *
