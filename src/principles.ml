@@ -1127,15 +1127,25 @@ let smash_ctx_map env sigma m =
 let pattern_instance ctxmap =
   List.rev_map pat_constr (filter_def_pats ctxmap)
 
-type computation = Computation of
-  Equations_common.rel_context * EConstr.t *
-    alias option * EConstr.constr list * EConstr.t *
-    EConstr.t * (node_kind * bool) * Splitting.splitting_rhs *
-    (rec_const *
-    alias option * Splitting.path * Equations_common.rel_context *
-    EConstr.t * EConstr.constr list * (EConstr.constr * (int * int)) option *
-    computation list)
-    list option
+
+type clause = {
+  ctx : Equations_common.rel_context;
+  f : EConstr.t;
+  alias : alias option;
+  pats : EConstr.constr list;
+  ty : types;
+  f_aussi : EConstr.t;
+  kind : node_kind * bool (* "cut" *);
+  rhs : splitting_rhs;
+}
+
+type computation = Computation of clause * where list option
+
+and where = rec_const *
+  alias option * Splitting.path * Equations_common.rel_context *
+  EConstr.t * EConstr.constr list * (EConstr.constr * (int * int)) option *
+  computation list
+
 
 let computations env evd alias refine p eqninfo : computation list =
   let { equations_prob = prob;
@@ -1213,8 +1223,8 @@ let computations env evd alias refine p eqninfo : computation list =
       Feedback.msg_debug Pp.(str"substituted: " ++ pr_splitting_rhs ~verbose:true envlhs envlhs evd lhs c' ty));
      let patsconstrs = pattern_instance ctx in
      let ty = substl inst ty in
-     [Computation (ctx.src_ctx, f, alias, patsconstrs, ty,
-      f, (Where, snd refine), c', Some wheres)]
+     [Computation ({ctx=ctx.src_ctx; f; alias; pats=patsconstrs; ty;
+      f_aussi=f; kind=(Where, snd refine); rhs=c'}, Some wheres)]
 
   | Split (_, _, _, cs) ->
     Array.fold_left (fun acc c ->
@@ -1241,8 +1251,8 @@ let computations env evd alias refine p eqninfo : computation list =
       (push_rel_context (pi1 lhs) env) evd info.refined_term);
      Feedback.msg_debug Pp.(str"At refine node, program term: " ++ Printer.pr_econstr_env 
       (push_rel_context (pi1 lhs) env) evd progterm); *)
-     [Computation (lhs.src_ctx, f, alias, patsconstrs, info.refined_rettyp, f, (Refine, true),
-      RProgram progterm,
+     [Computation ({ctx=lhs.src_ctx; f; alias; pats=patsconstrs; ty=info.refined_rettyp; f_aussi=f; kind=(Refine, true);
+      rhs=RProgram progterm},
       Some [(info.refined_term, filter), None, info.refined_path, info.refined_newprob.src_ctx,
             info.refined_newty, refinedpats,
             Some (mapping_constr evd info.refined_newprob_to_lhs c, info.refined_arg),
@@ -1479,14 +1489,14 @@ let all_computations env evd alias progs =
       computations env evd alias (kind_of_prog p.program_info,false) p in
     List.map (fun (p, unfp, prog, eqninfo) -> p, eqninfo, fn p unfp eqninfo) progs
   in
-  let rec flatten_comp (Computation (ctx, fl, flalias, pats, ty, f, refine, c, rest)) =
+  let rec flatten_comp (Computation (clause, rest)) =
     let rest = match rest with
       | None -> []
       | Some l ->
          CList.map_append (fun (f, alias, path, ctx, ty, pats, newargs, rest) ->
           let nextlevel, rest = flatten_comps rest in
-            ((f, alias, path, ctx, ty, pats, newargs, refine), nextlevel) :: rest) l
-    in (ctx, fl, flalias, pats, ty, f, refine, c), rest
+            ((f, alias, path, ctx, ty, pats, newargs, clause.kind), nextlevel) :: rest) l
+    in clause, rest
   and flatten_comps r =
     List.fold_right (fun cmp (acc, rest) ->
       let stmt, rest' = flatten_comp cmp in
@@ -1584,7 +1594,7 @@ let build_equations ~pm with_ind env evd ?(alias:alias option) rec_info progs =
   in
   let evd = ref evd in
   let poly = info.poly in
-  let statement i filter (ctx, fl, flalias, pats, ty, f', (refine, cut), c) =
+  let statement i filter {ctx; f=fl; alias=flalias; pats; ty; f_aussi=f'; kind=(refine, cut); rhs=c} =
     let hd, unf = match flalias with
       | Some ((f', _), unf, _) ->
         let tac = Proofview.tclBIND
