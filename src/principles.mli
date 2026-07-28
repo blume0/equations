@@ -21,10 +21,12 @@ val smash_ctx_map : Environ.env -> Evd.evar_map -> Context_map.context_map -> Co
 
 val subst_protos: Splitting.term_info -> Names.Constant.t list -> Names.GlobRef.t -> Names.GlobRef.t
 
+type rec_const = EConstr.t * int list
+
 type proto = {
   head : EConstr.t;
-  f : EConstr.t * int list;
-  alias : (EConstr.t * int list) option;
+  f : rec_const;
+  alias : rec_const option;
   idx : int;
   sign : EConstr.rel_context;
   arity : Constr.t;
@@ -70,8 +72,8 @@ val compute_elim_type :
   Names.MutInd.t ->
   int ->
          (int *
-          ((EConstr.constr * int list) *
-           ((EConstr.constr * int list) * Names.Id.t * Splitting.splitting)
+          (rec_const *
+           (rec_const * Names.Id.t * Splitting.splitting)
            option * Splitting.path * EConstr.rel_context * EConstr.types *
            EConstr.constr list * (EConstr.constr * (int * int)) option * (node_kind * bool)) *
           (int *
@@ -141,10 +143,10 @@ val build_equations :
 val all_computations :
   Environ.env ->
   Evd.evar_map ->
-  ((EConstr.constr * int list) * Names.Id.t * Splitting.splitting)
+  (rec_const * Names.Id.t * Splitting.splitting)
     option ->
   (Splitting.program * Splitting.program option * 'b * Principles_proofs.equations_info) list ->
-  (((EConstr.t * int list) *
+  ((rec_const *
     alias option * Splitting.path * EConstr.rel_context * EConstr.t *
     EConstr.constr list * (EConstr.constr * (int * int)) option *
     (node_kind * bool)) *

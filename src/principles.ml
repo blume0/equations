@@ -44,11 +44,12 @@ let regular_or_nested_rec = function
 
 let nested = function Nested _ -> true | _ -> false
 
+type rec_const = EConstr.t * int list
 
 type proto = {
   head : EConstr.t;
-  f : EConstr.t * int list;
-  alias : (EConstr.t * int list) option;
+  f : rec_const;
+  alias : rec_const option;
   idx : int;
   sign : EConstr.rel_context;
   arity : Constr.t;
@@ -61,6 +62,7 @@ type rec_call = {
   sign : Constr.rel_context;
   args : Constr.constr list * Constr.constr list * Constr.constr list;
 }
+
 
 
 let pi1 (x,_,_) = x
@@ -1087,7 +1089,7 @@ let substitute_alias evd ((f, fargs), term) c =
 let substitute_aliases evd fsubst c =
   List.fold_right (substitute_alias evd) fsubst c
 
-type alias = ((EConstr.t * int list) * Names.Id.t * Splitting.splitting)
+type alias = (rec_const * Names.Id.t * Splitting.splitting)
 
 let make_alias (f, id, s) = ((f, []), id, s)
 
@@ -1129,7 +1131,7 @@ type computation = Computation of
   Equations_common.rel_context * EConstr.t *
     alias option * EConstr.constr list * EConstr.t *
     EConstr.t * (node_kind * bool) * Splitting.splitting_rhs *
-    ((EConstr.t * int list) *
+    (rec_const *
     alias option * Splitting.path * Equations_common.rel_context *
     EConstr.t * EConstr.constr list * (EConstr.constr * (int * int)) option *
     computation list)
