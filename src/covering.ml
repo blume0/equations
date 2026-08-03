@@ -269,6 +269,7 @@ let lets_of_ctx env ctx evars s =
   in pats, ctxs, ctx'
 
 let env_of_rhs evars ctx env s lets = 
+  Format.printf "@.@.ENV_OF_RHS: CTX={%a}@.@." Pp.pp_with @@ Pp.(prlist_with_sep (fun () -> str";")) (Printer.pr_erel_decl env !evars) ctx;
   let envctx = push_rel_context ctx env in
   let patslets, letslen = 
     fold_right (fun decl (acc, len) -> 
@@ -343,9 +344,12 @@ let add_wfrec_implicits rec_type c =
   else c
 
 let interp_constr_evars_impls env sigma data expected_type c =
+  Format.printf "Constr w/o implicits : <%a>@." Pp.pp_with (Printer.pr_glob_constr_env env sigma c);
   let c = add_wfrec_implicits data.rec_type c in
   let imps = Implicit_quantifiers.implicits_of_glob_constr ~with_products:(expected_type == Pretyping.IsType) c in
   let flags = Pretyping.{ all_no_fail_flags with program_mode = data.program_mode } in
+  Format.printf "Interping constr <%a>....ENV IS <%a>" Pp.pp_with (Printer.pr_glob_constr_env env sigma c) Pp.pp_with
+  (Printer.pr_rel_context_of env sigma);
   let sigma, c = Pretyping.understand_tcc ~flags env sigma ~expected_type c in
   sigma, (c, imps)
 
@@ -360,12 +364,16 @@ let expected_type = function
 let interp_program_body env sigma ctx data body ty =
   match body with
   | ConstrExpr c ->
+    Format.printf "interp_program_body BEFORE ENV IS @;<0 2><%a>@." Pp.pp_with @@ Printer.pr_rel_context_of env sigma;
     let env = push_rel_context ctx env in
     let expected_type = expected_type ty in
     let c = intern_gen expected_type ~impls:data.intenv env sigma c in
+    Format.printf "interp_program_body ...@;<0 2> <%a>... ENV IS @;<0 2><%a>@." Pp.pp_with (Printer.pr_glob_constr_env env sigma c)
+      Pp.pp_with (Printer.pr_rel_context_of env sigma);
     interp_glob_constr_evars_impls env sigma ctx data expected_type c
   | GlobConstr c ->
     let env = push_rel_context ctx env in
+    Format.printf "interp_program_body ... <%a>@." Pp.pp_with (Printer.pr_glob_constr_env env sigma c);
     interp_glob_constr_evars_impls env sigma ctx data (expected_type ty) c
   | Constr c ->
     let env = Environ.reset_with_named_context (Environ.named_context_val env) env in
@@ -403,7 +411,14 @@ let interp_program_body env evars ctx data c ty =
       *                 str ":" ++
       *                 str (Printexc.to_string e)) *)
 
+let pr_program_body env sigma = function
+  | ConstrExpr c -> Ppconstr.pr_constr_expr ~flags:{parentheses=true} env sigma c
+  | GlobConstr c -> Printer.pr_glob_constr_env env sigma c
+  | Constr c -> Printer.pr_econstr_env env sigma c
+
 let interp_constr_in_rhs_env env evars data (ctx, envctx, liftn, subst) substlift c ty =
+  Format.printf "interp_c_in_rhs ... <%a>@.ENV IS<%a>@." Pp.pp_with (pr_program_body env !evars c)
+  Pp.pp_with (Printer.pr_rel_context_of env !evars);
   match ty with
   | None ->
     let sigma, c = interp_program_body env !evars ctx data c None in
@@ -423,6 +438,8 @@ let interp_constr_in_rhs_env env evars data (ctx, envctx, liftn, subst) substlif
 
 let interp_constr_in_rhs env ctx evars data ty s lets c =
   try
+    Format.printf "interp_constr_in_rhs.......@;<0 2> CTX=@[%a@] @." Pp.pp_with @@
+      Pp.(prlist_with_sep (fun () -> str";")) (Printer.pr_erel_decl env !evars) ctx;
     let env' = env_of_rhs evars ctx env s lets in
     interp_constr_in_rhs_env env evars data env' 0 c ty
   with Evarsolve.IllTypedInstance _ ->
@@ -754,6 +771,21 @@ let interp_arity env evd ~poly ~is_rec ~with_evars notations (((loc,i),udecl,rec
   let sigma = Evd.minimize_universes !evd in
   let sign = nf_rel_context_evar sigma sign in
   let arity = nf_evar sigma arity in
+  (* let fullty = it_mkProd_or_subst env sigma arity sign in *)
+  (* let sigma, sign, arity = *)
+  (*   let rec aux evars sign ty = *)
+  (*     match EConstr.kind evars (whd_all (push_rel_context sign env) evars ty) with *)
+  (*     | Prod (na, t, b) -> aux  evars (Context.Rel.Declaration.LocalAssum (na, t) :: sign) b *)
+  (*     | Evar e -> let evars', t = Evardefine.define_evar_as_product env evars e in *)
+  (*                 aux evars' sign t *)
+  (*     | _ -> *)
+  (*        user_err_loc (None, str "Too many patterns in clauses for this type") *)
+  (*   in aux sigma [] fullty *)
+  (* in *)
+  let pc = Printer.pr_econstr_env env sigma in
+  let pctx = Pp.(prlist_with_sep (fun () -> str";")) (Printer.pr_erel_decl env sigma) in
+  let pw = Pp.pp_with in
+  Format.printf "@.@.IN INTERP_ARITY:@.sign=<%a>@.arity=<%a>@.@." pw (pctx sign) pw (pc arity);
   let interp_reca k i =
     match k with
     | None | Some Syntax.Mutual -> MutualOn i
@@ -894,6 +926,11 @@ let wf_fix_constr env evars sign arity sort carrier cterm crel =
     Cbv.cbv_norm infos
   in
   let fixty = norm env fixty in
+  let pc = Printer.pr_econstr_env env sigma in
+  let pw = Pp.pp_with in
+  let pctx = (Pp.(prlist_with_sep (fun () -> str";")) (Printer.pr_erel_decl env !evars)) in
+  Format.printf "@.@.WF_FIX_CONSTR: sign=<%a>@.arity=<%a>@.concl=<%a>@.crel=<%a>@.wfty=<%a>@.fix=<%a>@.fixty=<%a>@.@." pw (pctx sign) pw (pc arity) pw (pc concl) pw (pc crel) pw (pc wfty) pw (pc fix) pw (pc fixty);
+
   (* let prc = Printer.pr_econstr_env env !evars in
    * Feedback.msg_debug (str" fix ty" ++ prc fixty); *)
   let functional_type, concl =
@@ -906,6 +943,7 @@ let wf_fix_constr env evars sign arity sort carrier cterm crel =
   let fix = norm env fix in
   let functional_type, full_functional_type =
     let ctx, rest = Reductionops.whd_decompose_prod_n_assum env !evars (Context.Rel.nhyps sign) functional_type in
+    Format.printf "@.@.CONSTRUCTING FUNCTIONAL_TYPE:@.ctx=<%a>@.rest=<%a>@.@." pw (pctx ctx) pw (pc rest);
     match kind !evars (whd_all (push_rel_context ctx env) !evars rest) with
     | Prod (na, b, concl) ->
       let ctx', rest = Reductionops.whd_decompose_prod_decls (push_rel_context ctx env) !evars b in
@@ -996,11 +1034,13 @@ let compute_rec_data env evars data lets subst p =
   | Some (WellFounded (term, rel, _)) ->
     let arg, rel, (functional_type, _full_functional_type, fix) =
       wf_fix env evars subst p.program_sign p.program_arity p.program_sort term rel in
+    Format.printf "@.@.IN COMPUTE REC DATA: sign=@[;<2 2>@[{%a}@]@]@.arity={%a}@.functional_type={%a}@.full_functional_type={%a}@.@." Pp.pp_with (Pp.(prlist_with_sep (fun () -> str";")) (Printer.pr_erel_decl env !evars) p.program_sign) Pp.pp_with (Printer.pr_econstr_env env !evars p.program_arity) Pp.pp_with (Printer.pr_econstr_env env !evars functional_type) Pp.pp_with (Printer.pr_econstr_env env !evars _full_functional_type);
     let ctxpats = pats_of_sign lets in
     let rec_args = List.length p.program_sign in
     let decl = make_def (nameR p.program_id) None functional_type in
     let rec_sign = p.program_sign @ lets in
     let lhs = decl :: rec_sign in
+    Format.printf "@.@.IN COMPUTE REC DATA: LHS={%a}@.@." Pp.pp_with @@ Pp.(prlist_with_sep (fun () -> str";")) (Printer.pr_erel_decl env !evars) lhs;
     let pats = PHide 1 :: lift_pats 1 (id_pats rec_sign) in
     let rec_prob = { src_ctx = lhs; map_inst = pats; tgt_ctx = lhs } in
     let rec_node =
@@ -1280,6 +1320,8 @@ and interp_clause env evars p data prev clauses' path prob
     extpats lets ty
     ((loc,lhs,rhs), used) (s, uinnacs, innacs) =
   let { src_ctx = ctx; map_inst = pats; tgt_ctx = ctx' } = prob in
+  Format.printf "@.@.INTERP_CLAUSE WITH CTX={%a} @.@." Pp.pp_with @@
+    Pp.(prlist_with_sep (fun () -> str";")) (Printer.pr_erel_decl env !evars) ctx;
   let env' = push_rel_context_eos ctx env evars in
   let get_var loc i s =
     match assoc i s with
@@ -1337,6 +1379,7 @@ and interp_clause env evars p data prev clauses' path prob
   in
   match rhs with
   | Program (c,w) ->
+    Format.printf "@.@.CALLING ENV_OF_RHS ON PROGRAM IN INTERP_CLAUSE: CTX={%a}@.@." Pp.pp_with @@ Pp.(prlist_with_sep (fun () -> str";")) (Printer.pr_erel_decl env !evars) ctx;
     let (ctx, envctx, liftn, subst as letctx) = env_of_rhs evars ctx env s lets in
     let data, envctx, lets, nwheres, env', coverings, lift, subst =
       interp_wheres env ctx evars path data s lets letctx w in
@@ -1634,11 +1677,27 @@ and covering ?(check_unused=true) env evars p data (clauses : pre_clause list)
       (str "Unable to build a covering for:" ++ fnl () ++
        pr_problem p env !evars prob)
 
+let adjust_rec_type p data =
+  let rec_type = data.rec_type in
+  match rec_type with
+  | [ Some (Logical (nargs, (loc, id))) ] ->
+     if Id.equal id p.program_id then
+       let nargs = List.length p.program_sign in
+       {data with rec_type = [Some (Logical (nargs, (loc, id)))]}
+     else data
+  | _ -> data
+
 let program_covering env evd data p clauses =
   let clauses = List.map (interp_eqn (push_rel_context data.fixdecls env) !evd
     data.notations p ~avoid:Id.Set.empty) clauses in
+  let _pc = Printer.pr_econstr_env env !evd in
+  let pctx = Pp.(prlist_with_sep (fun () -> str";")) (Printer.pr_erel_decl env !evd) in
+  let pw = Pp.pp_with in
+  let initial_sign = p.program_sign in
   let sigma, p = adjust_sign_arity env !evd p clauses in
+  Format.printf "@.@.AT PROGRAM_COVERING,@.PROGRAM_SIGN=<%a>@.ADJUSTED_PROGRAM_SIGN=<%a>@.@." pw (pctx initial_sign) pw (pctx p.program_sign);
   let () = evd := sigma in
+  let data = adjust_rec_type p data in
   let p', prob, arity, extpats, rec_node = compute_rec_data env evd data [] [] p in
   let splitting =
     covering env evd p data clauses [p.program_id] prob extpats arity

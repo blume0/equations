@@ -492,6 +492,18 @@ let interp_pat env sigma notations ~avoid p pat =
       avoid, [pat]
   with Not_found -> anomaly (str"While translating pattern to glob constr")
 
+let nargs_of_input_pats (p : Constrexpr.constr_expr input_pats) =
+  let nargs_of_cstr_expr : Constrexpr.constr_expr -> int =
+    CAst.with_loc_val (fun ?loc g ->
+        match g with
+        | CApp (_, args) -> List.length args
+        | _ -> 0
+    )
+  in
+  match p with
+  | SignPats c -> nargs_of_cstr_expr c
+  | RefinePats cs -> List.fold_left (fun acc c -> acc + nargs_of_cstr_expr c) 0 cs
+
 (* let rename_away_from ids pats =
   let rec aux ?loc pat =
     match pat with

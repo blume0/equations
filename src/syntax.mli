@@ -174,6 +174,7 @@ val pattern_of_glob_constr :
   Glob_term.glob_constr ->
   Names.Id.Set.t * (user_pat, [ `any] ) DAst.t
 
+val nargs_of_input_pats : Constrexpr.constr_expr input_pats -> int
 
 val interp_pat : Environ.env -> Evd.evar_map -> Vernacexpr.notation_declaration list -> avoid:Id.Set.t ->
   (program_info * Names.Name.t list) option ->
