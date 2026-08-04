@@ -315,6 +315,11 @@ let is_wf_ref id rec_type =
 
 let add_wfrec_implicits rec_type c =
   let open Glob_term in
+  let fresh_name =
+    let n = ref 0 in
+    fun () -> incr n ;
+              (Names.Id.of_string ("_equations_fresh_" ^ string_of_int !n))
+  in
   if has_logical rec_type then
     let rec aux c =
       let maprec a = Glob_ops.map_glob_constr_left_to_right aux a in
@@ -332,11 +337,27 @@ let add_wfrec_implicits rec_type c =
                                             qm_name = Anonymous;
                                             qm_record_field = None }
                     in
+                    let to_extend = nargs - List.length args in
+                    let apply_abstractions, args =
+                      if to_extend > 0 then
+                        let new_names = List.map fresh_name (CList.make to_extend ()) in
+                        let extend_with = List.map (fun n -> DAst.make (GVar n)) new_names in
+                        let apply_abstractions t =
+                          let mk_glambda gterm x =
+                            let ty = DAst.make ?loc (GHole (GQuestionMark kind)) in
+                            DAst.make (GLambda (Name.mk_name x, None, Explicit, ty, gterm))
+                          in
+                          List.fold_left mk_glambda t new_names
+                        in
+                        apply_abstractions, args @ extend_with
+                      else
+                        (fun t -> t), args
+                    in
                     let newarg = GHole (GQuestionMark kind) in
                     let newarg = DAst.make ?loc newarg in
                     let before, after = List.chop nargs (mapargs args) in
                     let args' = List.append before (newarg :: after) in
-                    DAst.make ?loc (GApp (fn, args')))
+                    apply_abstractions (DAst.make ?loc (GApp (fn, args'))))
                 | _ -> maprec c) fn
           | _ -> maprec c) c
     in aux c
