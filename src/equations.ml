@@ -175,13 +175,22 @@ let define_by_eqs ~pm ~poly ~program_mode ~obligations ~tactic ~open_proof opts 
   let programs = List.map (fun (((loc,i),udecl,rec_annot,l,t,by),clauses as ieqs) ->
       let is_rec = is_recursive i (eqs, nt) in
       interp_arity env evd ~poly ~is_rec ~with_evars:open_proof nt ieqs) eqs in
-  let rec_type = compute_rec_type [] programs in
   let () = print_program_info env !evd programs in
   let env = Global.env () in (* To find the comp constant *)
-  let data, fixdecls, fixprots = compute_fixdecls_data env evd programs in
+  let data, fixdecls, fixprots = compute_fixdecls_data env !evd programs in
   let fixdecls = nf_rel_context_evar !evd fixdecls in
+  let equations =
+    let interp_eqns p clauses =
+      List.map (interp_eqn (push_rel_context fixdecls env) !evd nt p ~avoid:Id.Set.empty) clauses
+    in List.map2 interp_eqns programs (List.map snd eqs)
+  in
+  let programs = List.map2 (fun p clauses ->
+                     let sigma, p = adjust_sign_arity env !evd p clauses in
+                     evd := sigma; p) programs equations
+  in
+  let rec_type = compute_rec_type [] programs in
   let intenv = { rec_type; flags; fixdecls; intenv = data; notations = nt; program_mode } in
-  let programs = coverings env evd intenv programs (List.map snd eqs) in
+  let programs = coverings env evd intenv programs equations in
   let env = Global.env () in (* coverings has the side effect of defining comp_proj constants for now *)
   let fix_proto_ref = Globnames.destConstRef (Lazy.force coq_fix_proto) in
   (* let _kind = (Decl_kinds.Global Decl_kinds.ImportDefaultBehavior, poly, Decl_kinds.Definition) in *)

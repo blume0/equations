@@ -198,7 +198,7 @@ val compute_rec_type : rec_type -> program_info list -> rec_type
 val print_program_info : env -> Evd.evar_map -> program_info list -> unit
 val compute_fixdecls_data :
            Environ.env ->
-           Evd.evar_map ref ->
+           Evd.evar_map ->
            ?data:Constrintern.internalization_env ->
            Syntax.program_info list ->
            Constrintern.internalization_env *
@@ -253,5 +253,5 @@ val coverings :
   Evd.evar_map ref ->
   int_data ->
   Syntax.program_info list ->
-  pre_equation list list ->
+  pre_clause list list ->
   Splitting.program list
