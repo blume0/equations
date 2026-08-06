@@ -333,7 +333,6 @@ let add_wfrec_implicits rec_type c =
                                             qm_record_field = None }
                     in
                     let to_extend = nargs - List.length args in
-                    Format.printf "@.BLUME: nargs=%d, args=%d@." nargs (List.length args);
                     let add_abstractions, args =
                       if to_extend > 0 then (* the function is not fully applied *)
                         let new_names =
