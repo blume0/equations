@@ -11,19 +11,19 @@
 \def\userref#1#2{\coqdockw{with}~#1~\textcoloneq~#2}
 \def\var#1{\coqdocvar{#1}}
 \def\figdefs{\begin{array}{llcl}
-  \texttt{term}, \texttt{type} & t, ~τ & \Coloneqq &
-  \coqdocvar{x} `| \lambda \coqdocvar{x} : \tau, t, R `| ∀ \coqdocvar{x} :
+  \texttt{term}, \texttt{type} & t, ~\tau & \Coloneqq &
+  \coqdocvar{x} `| \lambda \coqdocvar{x} : \tau, t, R `| \forall \coqdocvar{x} :
                                                     \tau, \tau' `|
   \mathbf{\lambda}\texttt{\{}\,\vecplus{\vec{up} \coloneqq t}\texttt{\}}
    \cdots \\
   \texttt{binding} & d & \Coloneqq & \texttt{(}\coqdocvar{x}~\texttt{:}~\tau\texttt{)} `|
   \texttt{(}\coqdocvar{x}~\textcoloneq~t~\texttt{:}~\tau\texttt{)} \\
-  \texttt{context} & Γ, Δ & \Coloneqq & \vec{d} \\
+  \texttt{context} & \textGamma, \textDelta & \Coloneqq & \vec{d} \\
   \texttt{programs} & progs & \Coloneqq & prog~\overrightarrow{mutual} \texttt{.} \\
   \texttt{mutual programs} & mutual & \Coloneqq & \coqdockw{with}~p `| where \\
   \texttt{where clause} & where & \Coloneqq & \coqdockw{where}~p `| \coqdockw{where}~not\\
   \texttt{notation} & not & \Coloneqq & \texttt{''}string\texttt{''}~\textcoloneq~t~(\texttt{:}~scope)?\\
-  \texttt{program} & p, prog & \Coloneqq & \coqdoccst{f}(\texttt{@\{} univ\_decl \texttt{\}})?~Γ~\texttt{:}~τ~(\coqdockw{by}~\textit{annot})?~\textcoloneq~clauses \\
+  \texttt{program} & p, prog & \Coloneqq & \coqdoccst{f}(\texttt{@\{} univ\_decl \texttt{\}})?~\textGamma~\texttt{:}~\texttau~(\coqdockw{by}~\textit{annot})?~\textcoloneq~clauses \\
   \texttt{annotation} & annot & \Coloneqq & \kw{struct}~\var{x}? `| \kw{wf}~t~R? \\
   \texttt{user clauses} & clauses & \Coloneqq & \vecplus{cl} `| \texttt{\{}\,\vec{cl}\,\texttt{\}} \\
   \texttt{user clause} & cl & \Coloneqq & \coqdoccst{f}~\vec{up}~n?~\texttt{;} `|
@@ -50,11 +50,11 @@ recursive definition, or locally inside a user node. A single program is given a
 fresh) identifier, an optional universe annotation, 
 a signature and a list of user clauses (order matters), along with an optional recursion annotation (see next
 section). The signature is simply a list of bindings and a result
-type. The expected type of the function \cst{f} is then $∀~Γ, τ$.
+type. The expected type of the function \cst{f} is then $\forall~\Gamma, \tau$.
 An empty set of clauses denotes that one of the variables has an empty type.
 
 Each user clause comprises a list of patterns that will match the
-bindings $Γ$ and an optional right hand side. Patterns can be named or
+bindings $\textGamma$ and an optional right hand side. Patterns can be named or
 anonymous variables, constructors applied to patterns, the inaccessible
 pattern \texttt{?(}t\texttt{)} (a.k.a. "dot" pattern in \Agda) or the
 empty pattern \texttt{!} indicating a variable has empty type (in this
@@ -168,6 +168,11 @@ In \Equations v1.3 and higher, the command supports the following attributes:
   graph and elimination principle, respectively. Note that \texttt{eliminator = yes} 
   forces \texttt{equations = yes}.
 
+- \texttt{obligations} (since v1.3.2) for using the obligation system to resolve
+  holes and obligations coming from well-founded recursive definitions (also
+  depending on the global \texttt{Equations Obligations} flag). If the
+  \kw{Equations?} syntax is used, the value this option and its global counterpart is ignored.
+
 The \emph{deprecated} syntax $opts$ is a list of flags among:
 
 \begin{itemize}
@@ -234,6 +239,10 @@ The \kw{Equations} command obeys a few global options:
   generation of the graph and functional elimination principle
   associated to a definition, governed locally by the
   \texttt{derive(eliminator)} attribute.
+
+\item \texttt{Equations Obligations} (since v1.3.2) this sets the default for the
+  use of the obligation system, governed locally by the \texttt{obligations}
+  attribute.
 \end{itemize}
 
 \section{Derive}
@@ -369,7 +378,7 @@ provided).
 \newpage
 \section{Changes}
 
-\def\issue#1{\href{https://github.com/mattam82/Coq-Equations/issues/#1}{\texttt{\##1}}}
+\def\issue#1{\href{https://github.com/rocq-prover/equations/issues/#1}{\texttt{\##1}}}
 
 \begin{itemize}
 \item Version 1.3: 
