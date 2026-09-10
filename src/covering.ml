@@ -726,7 +726,7 @@ let make_fix_proto env sigma ty =
   let na = make_annot Anonymous r in
   relevance, mkLetIn (na, fixproto, Retyping.get_type_of env sigma fixproto, lift 1 ty)
 
-let compute_fixdecls_data env evd ?data programs =
+let compute_fixdecls_data env sigma ?data programs =
   let protos = List.map (fun p ->
       let ty = it_mkProd_or_LetIn p.program_arity p.program_sign in
       (p.program_id, ty, p.program_impls)) programs
@@ -734,9 +734,9 @@ let compute_fixdecls_data env evd ?data programs =
   let names, tys, impls = List.split3 protos in
   let data =
     Constrintern.compute_internalization_env ?impls:data
-    env !evd Constrintern.Recursive names tys impls
+    env sigma Constrintern.Recursive names tys impls
   in
-  let fixprots = List.map (fun ty -> make_fix_proto env !evd ty) tys in
+  let fixprots = List.map (fun ty -> make_fix_proto env sigma ty) tys in
   let fixdecls =
     List.map2 (fun i (relevance, fixprot) -> of_tuple (make_annot (Name i) relevance, None, fixprot)) names fixprots in
   data, List.rev fixdecls, fixprots
@@ -1553,7 +1553,7 @@ and interp_clause env evars p data prev clauses' path prob
 
 and interp_wheres env0 ctx evars path data s lets
     (ctx, envctx, liftn, subst)
-    (w : (pre_prototype * pre_equation list) list * Vernacexpr.notation_declaration list) =
+    (w : pre_equation wheres) =
   let notations = snd w in
   let aux (data,lets,nlets,coverings,env)
       (((loc,id),udecl,nested,b,t,reca),clauses as eqs) =
@@ -1635,10 +1635,6 @@ and covering ?(check_unused=true) env evars p data (clauses : pre_clause list)
        pr_problem p env !evars prob)
 
 let program_covering env evd data p clauses =
-  let clauses = List.map (interp_eqn (push_rel_context data.fixdecls env) !evd
-    data.notations p ~avoid:Id.Set.empty) clauses in
-  let sigma, p = adjust_sign_arity env !evd p clauses in
-  let () = evd := sigma in
   let p', prob, arity, extpats, rec_node = compute_rec_data env evd data [] [] p in
   let splitting =
     covering env evd p data clauses [p.program_id] prob extpats arity
