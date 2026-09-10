@@ -228,8 +228,34 @@ let ppclause clause =
   let sigma = Evd.from_env env in
   pp(pr_clause env sigma clause)
 
+(* The pattern-matching lambdas (of the form λ{ p₁ := rhs₁; ...; pₙ := rhsₙ })
+   are added to the toplevel constr_expr terms syntax.
+   An instance of such a lambda stored in a Constrexpr.CGenarg node with the
+   tag [wit_equations_list] *)
 let wit_equations_list : (pre_equation list, Util.Empty.t) GenConstr.tag =
   GenConstr.create "equations_list"
+
+(* A pattern-matching lambda can be parsed anywhere as part of a toplevel
+   term, but it is only intended to be interpreted in the context of an
+   Equations' command.
+   If one is placed outside of such a command, Rocq expects two functions to
+   be registered for elaborating it into a GlobConstr.t and then into an EConstr.t.
+   We register those functions to avoid causing anomalies and to signal the error to
+   the unfortunate user.
+*)
+let () =
+  let bad_pm_lambdas loc =
+    let msg = Pp.(
+        str "Ill placed use of the Equations plugin's pattern-matching " ++
+        str "lambdas outside of an Equations command." ++ spc() ++
+        str "Hint: In the presence of the Equations plugin, a 'λ' character " ++
+        str "immediately followed by a curly brace is parsed as a pattern-matching" ++
+        str "lambda and not as an abstraction with an implicit variable."
+    ) in
+    user_err_loc (loc, msg)
+  in
+  Genintern.register_intern_constr wit_equations_list
+    (fun ?loc _ x -> bad_pm_lambdas loc)
 
 let next_ident_away s ids =
   let n' = Namegen.next_ident_away s !ids in
